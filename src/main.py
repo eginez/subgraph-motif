@@ -1,5 +1,14 @@
 from rustworkx import PyDiGraph
 from typing import Optional
+import logging
+
+# Basic configuration
+logging.basicConfig(
+    level=logging.DEBUG,  # Set the base logging level
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 
 def total_degree(graph: PyDiGraph, index: int) -> int:
@@ -36,7 +45,7 @@ def can_support(
         device_graph.in_degree(device_node_index) == query.in_degree(query_node_index)
         and device_graph.out_degree(device_node_index)
         == query.out_degree(query_node_index)
-        and query_neighbors == device_node_neighbors
+        # and query_neighbors == device_node_neighbors
     )
 
 
@@ -135,6 +144,8 @@ def find_subgraph_instances(query: PyDiGraph, device_graph: PyDiGraph):
                     {motif_node: device_node}, query, device_graph
                 )
                 res.append(sol)
+            else:
+                logger.debug("can not be supported")
     return res
 
 
