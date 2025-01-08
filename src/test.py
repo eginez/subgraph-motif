@@ -154,3 +154,143 @@ def test_degree_constraints():
     res = find_subgraph_instances(query, device)
     assert len(res) == 0  # Should not match due to degree constraints
 
+
+def test_complete_isomorphisms():
+    """Test finding all isomorphisms in a simple triangle case"""
+    # Create triangle query
+    query = PyDiGraph()
+    query.add_nodes_from([0, 1, 2])
+    query.add_edges_from([
+        (0, 1, None),
+        (1, 2, None),
+        (2, 0, None)
+    ])
+
+    # Create triangle device - should find all 6 possible mappings
+    device = PyDiGraph()
+    device.add_nodes_from([0, 1, 2])
+    device.add_edges_from([
+        (0, 1, None),
+        (1, 2, None),
+        (2, 0, None)
+    ])
+
+    res = find_subgraph_instances(query, device)
+    # For a triangle, there should be 6 possible isomorphisms
+    expected = [
+        {0: 0, 1: 1, 2: 2},
+        {0: 1, 1: 2, 2: 0},
+        {0: 2, 1: 0, 2: 1},
+        {0: 0, 1: 2, 2: 1},
+        {0: 1, 1: 0, 2: 2},
+        {0: 2, 1: 1, 2: 0}
+    ]
+    assert len(res) == 6
+    assert all(mapping in expected for mapping in res)
+    assert all(expected_mapping in res for expected_mapping in expected)
+
+
+def test_square_with_diagonal():
+    """Test finding all isomorphisms in a square with one diagonal"""
+    # Create a square with one diagonal as query
+    query = PyDiGraph()
+    query.add_nodes_from([0, 1, 2, 3])
+    query.add_edges_from([
+        (0, 1, None),
+        (1, 2, None),
+        (2, 3, None),
+        (3, 0, None),
+        (0, 2, None)  # Diagonal
+    ])
+
+    # Create identical device graph
+    device = PyDiGraph()
+    device.add_nodes_from([0, 1, 2, 3])
+    device.add_edges_from([
+        (0, 1, None),
+        (1, 2, None),
+        (2, 3, None),
+        (3, 0, None),
+        (0, 2, None)  # Diagonal
+    ])
+
+    res = find_subgraph_instances(query, device)
+    # Should find 8 isomorphisms (4 rotations * 2 flips)
+    assert len(res) == 8
+
+
+def test_path_in_larger_graph():
+    """Test finding all possible path embeddings in a larger graph"""
+    # Create a simple path query of length 2
+    query = PyDiGraph()
+    query.add_nodes_from([0, 1, 2])
+    query.add_edges_from([
+        (0, 1, None),
+        (1, 2, None)
+    ])
+
+    # Create a complex device graph
+    device = PyDiGraph()
+    device.add_nodes_from([0, 1, 2, 3, 4])
+    device.add_edges_from([
+        (0, 1, None),
+        (1, 2, None),
+        (2, 3, None),
+        (3, 4, None),
+        (4, 0, None),  # Make it a cycle
+        (0, 2, None),  # Add some diagonals
+        (0, 3, None)
+    ])
+
+    res = find_subgraph_instances(query, device)
+    # Should find multiple path instances
+    assert len(res) >= 7  # At least 7 different path embeddings possible
+
+
+def test_bowtie_graph():
+    """Test finding all isomorphisms in a bowtie graph (two triangles sharing a vertex)"""
+    # Create bowtie query
+    query = PyDiGraph()
+    query.add_nodes_from([0, 1, 2, 3, 4])
+    query.add_edges_from([
+        (0, 1, None), (1, 2, None), (2, 0, None),  # First triangle
+        (2, 3, None), (3, 4, None), (4, 2, None)  # Second triangle
+    ])
+
+    # Create identical device graph
+    device = PyDiGraph()
+    device.add_nodes_from([0, 1, 2, 3, 4])
+    device.add_edges_from([
+        (0, 1, None), (1, 2, None), (2, 0, None),  # First triangle
+        (2, 3, None), (3, 4, None), (4, 2, None)  # Second triangle
+    ])
+
+    res = find_subgraph_instances(query, device)
+    # Should find 12 isomorphisms (6 ways to map first triangle * 2 ways to map second triangle)
+    assert len(res) == 12
+
+
+def test_star_in_clique():
+    """Test finding all star patterns in a complete graph"""
+    # Create star query with 3 points
+    query = PyDiGraph()
+    query.add_nodes_from([0, 1, 2, 3])
+    query.add_edges_from([
+        (0, 1, None),
+        (0, 2, None),
+        (0, 3, None)
+    ])
+
+    # Create complete graph K5 as device
+    device = PyDiGraph()
+    device.add_nodes_from([0, 1, 2, 3, 4])
+    device.add_edges_from([
+        (i, j, None)
+        for i in range(5)
+        for j in range(i + 1, 5)
+    ])
+
+    res = find_subgraph_instances(query, device)
+    # In K5, each vertex can be center of star, and remaining vertices can be arranged in 6 ways
+    # So total number of star patterns should be 5 * 6 = 30
+    assert len(res) == 30
