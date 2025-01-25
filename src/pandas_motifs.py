@@ -3,34 +3,35 @@ from typing import Iterable, Any
 import pandas as pd
 
 
+# def simple_query(df: pd.DataFrame):
+#     df_cross = pd.DataFrame.merge(
+#         df[["indices", "motif"]].reset_index(),
+#         df[["indices", "motif"]].reset_index(),
+#         how="cross",
+#         suffixes=("_x", "_y"),
+#     )
+#     df_cross = df_cross[df_cross["index_x"] != df_cross["index_y"]]
+#     df_cross["intersection"] = df_cross.apply(
+#         lambda x: x["indices_x"] & x["indices_y"], axis=1
+#     )
+#     df_cross["intersection_len"] = df_cross["intersection"].apply(len)
+#     print(df_cross)
+#     # So now finding overlapping motifs becomes a queries into the dataframe
+#     # For example say I want to find out all T motif and a 3line motif
+#     t_and_line = df_cross[
+#         (df_cross["motif_x"] == "T")
+#         & (df_cross["motif_y"] == "3line")
+#         & (df_cross["intersection_len"] == 1)
+#     ]
+#     print(t_and_line[["indices_x", "indices_y", "intersection"]])
+#
+
+
 def create_db(raw_data: Any) -> pd.DataFrame:
     # Is all this vectorized??
     df = pd.DataFrame(raw_data, dtype="object")
     df["indices"] = df["indices"].apply(set)
     return df
-
-
-def simple_query(df: pd.DataFrame):
-    df_cross = pd.DataFrame.merge(
-        df[["indices", "motif"]].reset_index(),
-        df[["indices", "motif"]].reset_index(),
-        how="cross",
-        suffixes=("_x", "_y"),
-    )
-    df_cross = df_cross[df_cross["index_x"] != df_cross["index_y"]]
-    df_cross["intersection"] = df_cross.apply(
-        lambda x: x["indices_x"] & x["indices_y"], axis=1
-    )
-    df_cross["intersection_len"] = df_cross["intersection"].apply(len)
-    print(df_cross)
-    # So now finding overlapping motifs becomes a queries into the dataframe
-    # For example say I want to find out all T motif and a 3line motif
-    t_and_line = df_cross[
-        (df_cross["motif_x"] == "T")
-        & (df_cross["motif_y"] == "3line")
-        & (df_cross["intersection_len"] == 1)
-    ]
-    print(t_and_line[["indices_x", "indices_y", "intersection"]])
 
 
 def find_motifs(motif_db: pd.DataFrame, motifs: list[str]) -> Any:
@@ -51,18 +52,19 @@ def find_motifs_helper(
     motif_db: pd.DataFrame, motifs: list[str], nodes_so_far: set[int]
 ) -> list[set[int]]:
     """
-    Colum names in the dataframe are:
+    Colum names in the dataframe are: indices, motif
     The point of this function is to return one set of node indices that match the motifs
     by querying the dataframe. As motifs are found they get merged into a bigger
     set that then executes intersection against the motif database.
     """
 
-    # First create the query
     if len(motifs) == 0:
         return [nodes_so_far]
 
     next_motif = motifs[0]
 
+    # First create the query
+    # Is this vectorized
     found_nodes = motif_db[
         (motif_db["motif"] == next_motif)
         &
