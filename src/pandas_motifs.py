@@ -83,7 +83,7 @@ def find_motifs_helper(
     return all_res
 
 
-raw_data = {
+RAW_DATA = {
     "indices": [
         [0, 1, 2, 3],
         [3, 4, 5, 6],
@@ -108,15 +108,14 @@ raw_data = {
     ],
 }
 if __name__ == "__main__":
-
-    df = create_db(raw_data)
+    df = create_db(RAW_DATA)
     # simple_query(df)
     nn = find_motifs(df, ["T", "3line"])
     print(nn)
 
 
 def test_find_motifs() -> None:
-    df = create_db(raw_data)
+    df = create_db(RAW_DATA)
     nn = find_motifs(df, ["T", "3line"])
     expected = [
         {0, 1, 2, 3, 4, 5},
