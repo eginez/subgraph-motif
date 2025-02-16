@@ -31,7 +31,41 @@ def build_static_df_2() -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
-if __name__ == "__main__":
+import time
+from contextlib import contextmanager
+
+
+@contextmanager
+def timeit_context(name):
+    start_time = time.perf_counter()
+    yield
+    end_time = time.perf_counter()
+    print(f"--- {name} took {(end_time - start_time):.3f} s ---")
+
+
+def operate(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    # Ideally here we only want the 2nd only of the merge only
+    # because the other ones have intersections on other columns
+    merged = df1.merge(df2, on="intr", how="inner")
+    # print(merged)
+
+    # print()
+    x_df = merged.filter(regex="_x$|^2$").melt(ignore_index=False)
+    y_df = merged.filter(regex="_y$").melt(ignore_index=False)
+
+    # Merge x and y values to find matches
+    matches = pd.merge(
+        x_df, y_df, left_index=True, right_index=True, suffixes=("_x", "_y")
+    )
+
+    # Count matches per row where values are equal
+    match_counts = (matches["value_x"] == matches["value_y"]).groupby(level=0).sum()
+
+    # print(merged[match_counts <= 1])
+    return merged[match_counts <= 1]
+
+
+def small_run():
     np.random.seed(0)
     df1 = build_static_df_1()
     df2 = build_static_df_2()
@@ -60,3 +94,12 @@ if __name__ == "__main__":
     print(match_counts)
 
     print(merged[match_counts <= 1])
+
+
+if __name__ == "__main__":
+    np.random.seed(0)
+    rows = 10_000
+    df1 = build_df(10, 0, 10, rows)
+    df2 = build_df(5, 0, 10, rows)
+    with timeit_context("operate"):
+        operate(df1, df2)
