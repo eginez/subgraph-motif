@@ -42,10 +42,8 @@ from contextlib import contextmanager
 @contextmanager
 def timeit_context(name: str):
     start_time = time.perf_counter()
-    data_holder = {}
-    yield data_holder
+    yield
     end_time = time.perf_counter()
-    data_holder[name] = end_time - start_time
     print(f"--- {name} took {(end_time - start_time):.3f} s ---")
 
 
