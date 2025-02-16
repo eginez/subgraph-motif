@@ -1,5 +1,12 @@
+import numpy as np
 from rustworkx import PyDiGraph
 from motif_search import find_subgraph_instances
+from src.pandas_multi_df import (
+    build_static_df_1,
+    build_static_df_2,
+    operate_pytorch,
+    operate_pandas,
+)
 
 
 def test_empty_graphs():
@@ -160,20 +167,12 @@ def test_complete_isomorphisms():
     # Create triangle query
     query = PyDiGraph()
     query.add_nodes_from([0, 1, 2])
-    query.add_edges_from([
-        (0, 1, None),
-        (1, 2, None),
-        (2, 0, None)
-    ])
+    query.add_edges_from([(0, 1, None), (1, 2, None), (2, 0, None)])
 
     # Create triangle device - should find all 6 possible mappings
     device = PyDiGraph()
     device.add_nodes_from([0, 1, 2])
-    device.add_edges_from([
-        (0, 1, None),
-        (1, 2, None),
-        (2, 0, None)
-    ])
+    device.add_edges_from([(0, 1, None), (1, 2, None), (2, 0, None)])
 
     res = find_subgraph_instances(query, device)
     # For a triangle, there should be 6 possible isomorphisms
@@ -183,7 +182,7 @@ def test_complete_isomorphisms():
         {0: 2, 1: 0, 2: 1},
         {0: 0, 1: 2, 2: 1},
         {0: 1, 1: 0, 2: 2},
-        {0: 2, 1: 1, 2: 0}
+        {0: 2, 1: 1, 2: 0},
     ]
     assert len(res) == 6
     assert all(mapping in expected for mapping in res)
@@ -195,24 +194,28 @@ def test_square_with_diagonal():
     # Create a square with one diagonal as query
     query = PyDiGraph()
     query.add_nodes_from([0, 1, 2, 3])
-    query.add_edges_from([
-        (0, 1, None),
-        (1, 2, None),
-        (2, 3, None),
-        (3, 0, None),
-        (0, 2, None)  # Diagonal
-    ])
+    query.add_edges_from(
+        [
+            (0, 1, None),
+            (1, 2, None),
+            (2, 3, None),
+            (3, 0, None),
+            (0, 2, None),  # Diagonal
+        ]
+    )
 
     # Create identical device graph
     device = PyDiGraph()
     device.add_nodes_from([0, 1, 2, 3])
-    device.add_edges_from([
-        (0, 1, None),
-        (1, 2, None),
-        (2, 3, None),
-        (3, 0, None),
-        (0, 2, None)  # Diagonal
-    ])
+    device.add_edges_from(
+        [
+            (0, 1, None),
+            (1, 2, None),
+            (2, 3, None),
+            (3, 0, None),
+            (0, 2, None),  # Diagonal
+        ]
+    )
 
     res = find_subgraph_instances(query, device)
     # Should find 8 isomorphisms (4 rotations * 2 flips)
@@ -224,23 +227,22 @@ def test_path_in_larger_graph():
     # Create a simple path query of length 2
     query = PyDiGraph()
     query.add_nodes_from([0, 1, 2])
-    query.add_edges_from([
-        (0, 1, None),
-        (1, 2, None)
-    ])
+    query.add_edges_from([(0, 1, None), (1, 2, None)])
 
     # Create a complex device graph
     device = PyDiGraph()
     device.add_nodes_from([0, 1, 2, 3, 4])
-    device.add_edges_from([
-        (0, 1, None),
-        (1, 2, None),
-        (2, 3, None),
-        (3, 4, None),
-        (4, 0, None),  # Make it a cycle
-        (0, 2, None),  # Add some diagonals
-        (0, 3, None)
-    ])
+    device.add_edges_from(
+        [
+            (0, 1, None),
+            (1, 2, None),
+            (2, 3, None),
+            (3, 4, None),
+            (4, 0, None),  # Make it a cycle
+            (0, 2, None),  # Add some diagonals
+            (0, 3, None),
+        ]
+    )
 
     res = find_subgraph_instances(query, device)
     # Should find multiple path instances
@@ -252,18 +254,30 @@ def test_bowtie_graph():
     # Create bowtie query
     query = PyDiGraph()
     query.add_nodes_from([0, 1, 2, 3, 4])
-    query.add_edges_from([
-        (0, 1, None), (1, 2, None), (2, 0, None),  # First triangle
-        (2, 3, None), (3, 4, None), (4, 2, None)  # Second triangle
-    ])
+    query.add_edges_from(
+        [
+            (0, 1, None),
+            (1, 2, None),
+            (2, 0, None),  # First triangle
+            (2, 3, None),
+            (3, 4, None),
+            (4, 2, None),  # Second triangle
+        ]
+    )
 
     # Create identical device graph
     device = PyDiGraph()
     device.add_nodes_from([0, 1, 2, 3, 4])
-    device.add_edges_from([
-        (0, 1, None), (1, 2, None), (2, 0, None),  # First triangle
-        (2, 3, None), (3, 4, None), (4, 2, None)  # Second triangle
-    ])
+    device.add_edges_from(
+        [
+            (0, 1, None),
+            (1, 2, None),
+            (2, 0, None),  # First triangle
+            (2, 3, None),
+            (3, 4, None),
+            (4, 2, None),  # Second triangle
+        ]
+    )
 
     res = find_subgraph_instances(query, device)
     # Should find 12 isomorphisms (6 ways to map first triangle * 2 ways to map second triangle)
@@ -275,22 +289,25 @@ def test_star_in_clique():
     # Create star query with 3 points
     query = PyDiGraph()
     query.add_nodes_from([0, 1, 2, 3])
-    query.add_edges_from([
-        (0, 1, None),
-        (0, 2, None),
-        (0, 3, None)
-    ])
+    query.add_edges_from([(0, 1, None), (0, 2, None), (0, 3, None)])
 
     # Create complete graph K5 as device
     device = PyDiGraph()
     device.add_nodes_from([0, 1, 2, 3, 4])
-    device.add_edges_from([
-        (i, j, None)
-        for i in range(5)
-        for j in range(i + 1, 5)
-    ])
+    device.add_edges_from([(i, j, None) for i in range(5) for j in range(i + 1, 5)])
 
     res = find_subgraph_instances(query, device)
     # In K5, each vertex can be center of star, and remaining vertices can be arranged in 6 ways
     # So total number of star patterns should be 5 * 6 = 30
     assert len(res) == 30
+
+
+def test_small() -> None:
+    np.random.seed(0)
+    df1 = build_static_df_1()
+    df2 = build_static_df_2()
+    res_gpu = operate_pytorch(df1, df2, use_gpu=True)
+    res_cpu = operate_pytorch(df1, df2, use_gpu=False)
+    res_pandas = operate_pandas(df1, df2)
+    assert res_pandas.equals(res_cpu)
+    assert res_pandas.equals(res_gpu)
