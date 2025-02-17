@@ -82,32 +82,21 @@ def operate_polars(df1: pl.DataFrame, df2: pl.DataFrame) -> pl.DataFrame:
     x_df = merged.select(x_cols).unpivot()
     y_df = merged.select(y_cols).unpivot()
 
-    # Add row number and variable name for joining
-    x_df = x_df.with_row_index("row_id").with_columns(
-        pl.col("variable").str.replace("_x$", "").alias("var_base")
-    )
+    # Add row index for tracking original rows
+    x_df = x_df.with_row_index("idx")
+    y_df = y_df.with_row_index("idx")
 
-    y_df = y_df.with_row_index("row_id").with_columns(
-        pl.col("variable").str.replace("_y$", "").alias("var_base")
-    )
+    matches = x_df.join(y_df, on="idx", suffix="_y")
 
-    # Join on both row_id and the base variable name
-    matches = x_df.join(y_df, on=["row_id", "var_base"], suffix="_y")
-
-    # Count matches where values are equal per original row
     match_counts = (
-        matches.with_columns(pl.col("value") == pl.col("value_y"))
-        .group_by("row_id")
-        .agg(pl.col("value").eq(pl.col("value_y")).sum().alias("match_count"))
+        matches.with_columns(pl.col("value").eq(pl.col("value_y")).alias("is_match"))
+        .group_by("idx")
+        .agg(pl.col("is_match").sum().alias("match_count"))
     )
 
-    # Filter original merged dataframe based on match counts
-    result = merged.join(
-        match_counts.filter(pl.col("match_count") <= 1),
-        left_on=pl.arange(0, len(merged)),
-        right_on="row_id",
-    ).drop("row_id", "match_count")
-    return result
+    filtered_indices = match_counts.filter(pl.col("match_count") <= 1)["idx"]
+
+    return merged.filter(pl.arange(0, len(merged)).is_in(filtered_indices))
 
 
 def operate_pytorch(
