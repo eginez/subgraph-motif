@@ -33,6 +33,7 @@ idna==3.10
 iniconfig==2.0.0
 ipykernel==6.29.5
 ipython==8.31.0
+ipywidgets==8.1.5
 isoduration==20.11.0
 jedi==0.19.2
 Jinja2==3.1.5
@@ -49,6 +50,7 @@ jupyter_server_terminals==0.5.3
 jupyterlab==4.3.4
 jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.3
+jupyterlab_widgets==3.0.13
 kiwisolver==1.4.8
 MarkupSafe==3.0.2
 matplotlib==3.10.0
@@ -106,6 +108,7 @@ terminado==0.18.1
 tinycss2==1.4.0
 torch==2.6.0
 tornado==6.4.2
+tqdm==4.67.1
 traitlets==5.14.3
 types-python-dateutil==2.9.0.20241206
 typing_extensions==4.12.2
@@ -116,3 +119,4 @@ wcwidth==0.2.13
 webcolors==24.11.1
 webencodings==0.5.1
 websocket-client==1.8.0
+widgetsnbextension==4.0.13

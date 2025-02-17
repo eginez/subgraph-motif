@@ -6,7 +6,9 @@ from src.pandas_multi_df import (
     build_static_df_2,
     operate_pytorch,
     operate_pandas,
+    operate_polars,
 )
+import polars as pl
 
 
 def test_empty_graphs():
@@ -309,5 +311,15 @@ def test_small() -> None:
     res_gpu = operate_pytorch(df1, df2, use_gpu=True)
     res_cpu = operate_pytorch(df1, df2, use_gpu=False)
     res_pandas = operate_pandas(df1, df2)
+    res_polars = operate_polars(pl.from_pandas(df1), pl.from_pandas(df2))
     assert res_pandas.equals(res_cpu)
     assert res_pandas.equals(res_gpu)
+    assert res_pandas.to_dict() == res_polars.to_numpy(use_pyarrow=False)
+
+
+def test_polars() -> None:
+    df1 = build_static_df_1()
+    df2 = build_static_df_2()
+    res_polars = operate_polars(pl.from_pandas(df1), pl.from_pandas(df2))
+    res_pandas = operate_pandas(df1, df2)
+    assert res_polars.equals(pl.from_pandas(res_pandas))

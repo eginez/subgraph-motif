@@ -2,6 +2,7 @@ from typing import Optional
 
 import pandas as pd
 import numpy as np
+import polars as pl
 
 
 def build_df(
@@ -67,6 +68,38 @@ def operate_pandas(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
 
     # print(merged[match_counts <= 1])
     return merged[match_counts <= 1]
+
+
+def operate_polars(df1: pl.DataFrame, df2: pl.DataFrame) -> pl.DataFrame:
+    # Perform inner join on "intr" column
+    merged = df1.join(df2, on="intr", how="inner", suffix="_y")
+
+    # Get column names ending with _x and column "2"
+    x_cols = [col for col in merged.columns if not col.endswith("_y") and col != "intr"]
+    y_cols = [col for col in merged.columns if col.endswith("_y")]
+
+    # Create melted dataframes for x and y columns
+    x_df = merged.select(x_cols).unpivot()
+    y_df = merged.select(y_cols).unpivot()
+
+    # Join the melted dataframes on row_id
+    matches = x_df.join(y_df, on="value", suffix="_y")
+
+    # Count matches where values are equal per original row
+    match_counts = (
+        matches.with_columns(pl.col("value") == pl.col("value_y"))
+        .group_by("row_id")
+        .agg(pl.col("value").eq(pl.col("value_y")).sum().alias("match_count"))
+    )
+
+    # Filter original merged dataframe based on match counts
+    result = merged.join(
+        match_counts.filter(pl.col("match_count") <= 1),
+        left_on=pl.arange(0, len(merged)),
+        right_on="row_id",
+    ).drop("row_id", "match_count")
+
+    return result
 
 
 def operate_pytorch(
@@ -148,10 +181,16 @@ def operate_pytorch(
 if __name__ == "__main__":
     np.random.seed(0)
     column_count = 500
-    row_count = 400
+    row_count = 100
     with timeit_context("creating dfs"):
         df1 = build_df(row_count, 0, 10, column_count + 3)
-        df2 = build_df(row_count, 0, 10, column_count)
+        df2 = build_df(row_count, 0, 10, 10)
 
     with timeit_context("operate_pytorch gpu"):
         res = operate_pytorch(df1, df2, use_gpu=True)
+
+    with timeit_context("operate pandas"):
+        res = operate_pandas(df1, df2)
+
+    with timeit_context("operate polars"):
+        res = operate_polars(pl.from_pandas(df1), pl.from_pandas(df2))
