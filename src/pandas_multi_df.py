@@ -82,8 +82,17 @@ def operate_polars(df1: pl.DataFrame, df2: pl.DataFrame) -> pl.DataFrame:
     x_df = merged.select(x_cols).unpivot()
     y_df = merged.select(y_cols).unpivot()
 
-    # Join the melted dataframes on row_id
-    matches = x_df.join(y_df, on="value", suffix="_y")
+    # Add row number and variable name for joining
+    x_df = x_df.with_row_index("row_id").with_columns(
+        pl.col("variable").str.replace("_x$", "").alias("var_base")
+    )
+
+    y_df = y_df.with_row_index("row_id").with_columns(
+        pl.col("variable").str.replace("_y$", "").alias("var_base")
+    )
+
+    # Join on both row_id and the base variable name
+    matches = x_df.join(y_df, on=["row_id", "var_base"], suffix="_y")
 
     # Count matches where values are equal per original row
     match_counts = (
@@ -98,7 +107,6 @@ def operate_polars(df1: pl.DataFrame, df2: pl.DataFrame) -> pl.DataFrame:
         left_on=pl.arange(0, len(merged)),
         right_on="row_id",
     ).drop("row_id", "match_count")
-
     return result
 
 
